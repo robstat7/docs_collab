@@ -13,17 +13,54 @@
 </style>
 
 <script>
-  function join() {
-    const user = document.getElementById("username").value.trim();
-    if (!user) return;
+  let ws;
 
-    let protocol = location.protocol === "https:" ? "wss" : "ws";
-    ws = new WebSocket(`${protocol}://${location.host}/ws`);
+  window.addEventListener("DOMContentLoaded", () => {
+    window.join = function () {
+      const user = document.getElementById("username").value.trim();
+      if (!user) return;
 
+      let protocol = location.protocol === "https:" ? "wss" : "ws";
+      ws = new WebSocket(`${protocol}://${location.host}/ws`);
 
-    ws.onopen = () => {
+      ws.onopen = () => {
         ws.send(user); // send username
+      };
+
+      ws.onmessage = (event) => {
+         const div = document.getElementsByClassName("editor-container")[0];
+         div.innerHTML = event.data;
+      };
+    }
+
+    const elTarget = document.querySelector(".editor-container");
+    const observer = new MutationObserver(handleEditorMutation);
+    const objConfig = {
+      childList: true,
+      subtree: true,
+      attributes: false,
+      characterData: true
     };
+
+    if (elTarget) {
+      observer.observe(elTarget, objConfig);
+    } else {
+      console.error("Target element not found");
+    }
+
+    function handleEditorMutation(mutationsList) {
+      for (const mutation of mutationsList) {
+        console.log('Mutation type:', mutation.type);
+        console.log('Target:', mutation.target);
+
+        if (mutation.type == "characterData") {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(mutation.target.textContent);
+          }
+        }
+      }
+    }
+  });
 </script>
 </head>
 <body>

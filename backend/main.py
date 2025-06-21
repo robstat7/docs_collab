@@ -10,13 +10,17 @@ class ConnectionManager:
     
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
+        print("@@@ws accepted!")
 
     def disconnect(self, websocket: WebSocket):
         self.active_connections.pop(websocket, None)
 
     async def register(self, websocket: WebSocket, username: str):
         self.active_connections[websocket] = username
-        await self.broadcast_users()
+
+    async def broadcast(self, message: str):
+        for conn in self.active_connections:
+            await conn.send_text(message)
 
 
 manager = ConnectionManager()
@@ -32,6 +36,10 @@ async def websocket_endpoint(ws: WebSocket):
     try:
         username = await ws.receive_text()
         await manager.register(ws, username)
+
+        while True:
+            data = await ws.receive_text()
+            await manager.broadcast(data)
 
     except WebSocketDisconnect:
         manager.disconnect(ws)
