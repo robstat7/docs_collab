@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Docs Collab</title>
+<style>
+  .editor-container {
+    width: 1000px;
+    height: 500px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    overflow: auto; /* Allows scrolling if content overflows */
+  }
+</style>
+
+<script>
+  function join() {
+    const user = document.getElementById("username").value.trim();
+    if (!user) return;
+
+    let protocol = location.protocol === "https:" ? "wss" : "ws";
+    ws = new WebSocket(`${protocol}://${location.host}/ws`);
+
+
+    ws.onopen = () => {
+        ws.send(user); // send username
+    };
+</script>
+</head>
+<body>
+  <input id="username" placeholder="Your username">
+    <button onclick="join()">Join</button><br><br>
+  <div class="editor-container" contenteditable="true">
+  </div>
+</body>
+</html>
