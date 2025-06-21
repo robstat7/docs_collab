@@ -18,9 +18,11 @@ class ConnectionManager:
     async def register(self, websocket: WebSocket, username: str):
         self.active_connections[websocket] = username
 
-    async def broadcast(self, message: str):
+    # avoid sending updates back to the originator
+    async def broadcast(self, message: str, ws: WebSocket):
         for conn in self.active_connections:
-            await conn.send_text(message)
+            if conn != ws:
+                await conn.send_text(message)
 
 
 manager = ConnectionManager()
@@ -39,7 +41,7 @@ async def websocket_endpoint(ws: WebSocket):
 
         while True:
             data = await ws.receive_text()
-            await manager.broadcast(data)
+            await manager.broadcast(data, ws)
 
     except WebSocketDisconnect:
         manager.disconnect(ws)

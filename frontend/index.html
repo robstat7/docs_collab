@@ -9,6 +9,8 @@
     border: 1px solid #ccc;
     padding: 10px;
     overflow: auto; /* Allows scrolling if content overflows */
+    direction: ltr;
+    unicode-bidi: plaintext;
   }
 </style>
 
@@ -66,7 +68,7 @@
 <body>
   <input id="username" placeholder="Your username">
     <button onclick="join()">Join</button><br><br>
-  <div class="editor-container" contenteditable="true">
+  <div class="editor-container" contenteditable="true" dir="ltr">
   </div>
 </body>
 </html>
