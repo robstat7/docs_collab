@@ -35,11 +35,25 @@
       };
 
       ws.onmessage = (event) => {
-        const div = document.querySelector(".editor-container");
-        // Only update if the incoming content is different
-        if (div.innerHTML !== event.data) {
-          div.innerHTML = event.data;
-          lastSentContent = event.data; // Keep track of the last known content
+        try {
+          const data = JSON.parse(event.data);
+
+          // Handle system messages
+          if (data.type === "system") {
+              document.getElementById("status").textContent = data.message;
+              setTimeout(() => {
+                  document.getElementById("status").textContent = '';
+              }, 3000); // Clear after 3 seconds
+              return;
+          } 
+        } catch (e) {
+          // Existing content update handling
+          const div = document.querySelector(".editor-container");
+          // Only update if the incoming content is different
+          if (div.innerHTML !== event.data) {
+            div.innerHTML = event.data;
+            lastSentContent = event.data; // Keep track of the last known content
+          }
         }
       };
     }
@@ -80,6 +94,7 @@
 <body>
   <input id="username" placeholder="Your username">
     <button onclick="join()">Join</button><br><br>
+  <div id="status" style="color:#666; font-style:italic; margin-bottom:10px;"></div>
   <div class="editor-container" contenteditable="true" dir="ltr">
   </div>
 </body>

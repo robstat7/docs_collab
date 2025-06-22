@@ -1,5 +1,6 @@
 from fastapi.responses import HTMLResponse
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import json
 
 app = FastAPI()
 
@@ -13,7 +14,8 @@ class ConnectionManager:
         print("@@@ws accepted!")
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.pop(websocket, None)
+        username = self.active_connections.pop(websocket, None)
+        return username
 
     async def register(self, websocket: WebSocket, username: str):
         self.active_connections[websocket] = username
@@ -23,6 +25,14 @@ class ConnectionManager:
         for conn in self.active_connections:
             if conn != ws:
                 await conn.send_text(message)
+
+    # broadcast system notifications to all clients
+    async def broadcast_system_message(self, message: str):
+        for conn in self.active_connections:
+            await conn.send_text(json.dumps({
+                "type": "system",
+                "message": message
+            }))
 
 
 manager = ConnectionManager()
@@ -39,9 +49,15 @@ async def websocket_endpoint(ws: WebSocket):
         username = await ws.receive_text()
         await manager.register(ws, username)
 
+        # notify all users about new join
+        await manager.broadcast_system_message(f"{username} joined the document")
+
         while True:
             data = await ws.receive_text()
             await manager.broadcast(data, ws)
 
     except WebSocketDisconnect:
-        manager.disconnect(ws)
+        username = manager.disconnect(ws)
+        if username:
+            # Notify all users about leave
+            await manager.broadcast_system_message(f"{username} left the document")
