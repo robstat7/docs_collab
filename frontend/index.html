@@ -16,6 +16,8 @@
 
 <script>
   let ws;
+  let lastSentContent = '';
+  let debounceTimer = null;
 
   window.addEventListener("DOMContentLoaded", () => {
     window.join = function () {
@@ -27,11 +29,18 @@
 
       ws.onopen = () => {
         ws.send(user); // send username
+        // Initialize with current content
+        const div = document.querySelector(".editor-container");
+        lastSentContent = div.innerHTML;
       };
 
       ws.onmessage = (event) => {
-         const div = document.getElementsByClassName("editor-container")[0];
-         div.innerHTML = event.data;
+        const div = document.querySelector(".editor-container");
+        // Only update if the incoming content is different
+        if (div.innerHTML !== event.data) {
+          div.innerHTML = event.data;
+          lastSentContent = event.data; // Keep track of the last known content
+        }
       };
     }
 
@@ -44,23 +53,26 @@
       characterData: true
     };
 
+    function handleEditorMutation(mutationsList) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      
+      const div = document.querySelector(".editor-container");
+      const currentContent = div.innerHTML;
+      
+      if (debounceTimer) clearTimeout(debounceTimer);
+      
+      if (currentContent !== lastSentContent) {
+        debounceTimer = setTimeout(() => {
+          ws.send(currentContent);
+          lastSentContent = currentContent;
+        }, 50);
+      }
+    }
+
     if (elTarget) {
       observer.observe(elTarget, objConfig);
     } else {
       console.error("Target element not found");
-    }
-
-    function handleEditorMutation(mutationsList) {
-      for (const mutation of mutationsList) {
-        console.log('Mutation type:', mutation.type);
-        console.log('Target:', mutation.target);
-
-        if (mutation.type == "characterData") {
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(mutation.target.textContent);
-          }
-        }
-      }
     }
   });
 </script>
