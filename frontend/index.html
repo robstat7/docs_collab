@@ -38,14 +38,17 @@
         try {
           const data = JSON.parse(event.data);
 
-          // Handle system messages
-          if (data.type === "system") {
-              document.getElementById("status").textContent = data.message;
-              setTimeout(() => {
-                  document.getElementById("status").textContent = '';
-              }, 3000); // Clear after 3 seconds
-              return;
-          } 
+          if (data.type === "user_list") {
+            updateOnlineUsers(data.users);
+          } else if (data.type === "system") { // handle system message
+            updateStatus(data.message);
+            // Request updated user list when someone joins/leaves
+            if (data.message.includes("joined") || data.message.includes("left")) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({"type": "get_users"}));
+                }
+            }
+          }
         } catch (e) {
           // Existing content update handling
           const div = document.querySelector(".editor-container");
@@ -56,6 +59,18 @@
           }
         }
       };
+
+      function updateOnlineUsers(users) {
+        const onlineUsersEl = document.getElementById('onlineUsers');
+        onlineUsersEl.textContent = users.length > 0 ? users.join(', ') : 'None';
+      }
+
+      function updateStatus(message) {
+          document.getElementById('status').textContent = message;
+          setTimeout(() => {
+              document.getElementById('status').textContent = '';
+          }, 3000);
+      }
     }
 
     const elTarget = document.querySelector(".editor-container");
@@ -92,9 +107,15 @@
 </script>
 </head>
 <body>
+  <div style="position: absolute; top: 10px; right: 10px; background: #f5f5f5; padding: 5px 10px; border-radius: 4px;">
+    <strong>Online Users:</strong>
+    <span id="onlineUsers">None</span>
+  </div>
+
   <input id="username" placeholder="Your username">
     <button onclick="join()">Join</button><br><br>
-  <div id="status" style="color:#666; font-style:italic; margin-bottom:10px;"></div>
+
+  <div id="status" style="color:#666; font-style:italic; margin-bottom:10px;"></div> <!-- notification on user join/leave -->
   <div class="editor-container" contenteditable="true" dir="ltr">
   </div>
 </body>

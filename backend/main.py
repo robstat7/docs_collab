@@ -34,6 +34,20 @@ class ConnectionManager:
                 "message": message
             }))
 
+    # return list of currently connected usernames
+    async def get_online_users(self) -> list:
+        return list(self.active_connections.values())
+
+    # send updated user list to all clients
+    async def broadcast_user_list(self):
+        users = await self.get_online_users()
+        message = json.dumps({
+            "type": "user_list",
+            "users": users
+        })
+        for conn in self.active_connections:
+            await conn.send_text(message)
+
 
 manager = ConnectionManager()
 
@@ -51,6 +65,7 @@ async def websocket_endpoint(ws: WebSocket):
 
         # notify all users about new join
         await manager.broadcast_system_message(f"{username} joined the document")
+        await manager.broadcast_user_list()  # Send updated list
 
         while True:
             data = await ws.receive_text()
@@ -61,3 +76,4 @@ async def websocket_endpoint(ws: WebSocket):
         if username:
             # Notify all users about leave
             await manager.broadcast_system_message(f"{username} left the document")
+            await manager.broadcast_user_list()  # Send updated list
